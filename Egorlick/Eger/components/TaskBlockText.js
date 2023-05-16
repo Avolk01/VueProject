@@ -1,4 +1,4 @@
-app.component('task-block', {
+app.component('task-block-text', {
     props:{
       authorized: {
           type: Boolean,
@@ -12,8 +12,8 @@ app.component('task-block', {
         type: String,
         required: true,
       },
-      answers: {
-        type: Array,
+      url: {
+        type: String,
         required: true,
       },
       chapter: {
@@ -25,6 +25,16 @@ app.component('task-block', {
         required: true,
       }
     },
+
+    data() {
+      return {
+        isCorrect: false,
+        showAnswer: false,
+        complete: false,
+        answer: ``,
+      }
+    },
+
     template:
     /* HTML */
     `
@@ -33,53 +43,46 @@ app.component('task-block', {
       <p> {{description}}</p>
 
       <template v-if="!this.complete">
-        <form @submit.prevent="checkAnswer">
-          <p><b> {{task}}</b></p>
-          <p v-for="answer in answers">
-            <input name="task" type="radio" :value="answer.id" id="answer.id" v-model="picked"> {{answer.message}} 
-          </p>
+        <form @submit.prevent="sendAnswer">
+          <p><b> {{task}}</b></p>        
+          <label for="answer">Напишите Код: </label>
+          <div>
+              <input type="text" v-model="this.answer" placeholder="some SQL code" />
+          </div>
           <input class="button" type="submit" value="Submit">  
         </form>
       </template>
-
-
-      <template v-if="this.isCorrect && this.showAnswer">
-        <h4> {{answers[picked-1].message}} </h4>
-        <h4> Это правильный ответ </h4>
-        <h4> Можете переходить к следующему уроку </h4>
+      <template v-else>
+        <h4> {{answer}} </h4>
+        <h4> Это верный ответ </h4>
       </template>
       
+    
+      <h4 v-if="this.isCorrect && this.showAnswer"> Можете переходить к следующему уроку </h4>
       <template v-else-if="this.showAnswer && !this.isCorrect" >
         <h4> Вы ввели неверный ответ </h4>
         <button @click="this.reset()"> Попробовать еще раз </button>
       </template>
       
+      
     </div>    
     `, 
     methods: {
-      checkAnswer() {
-        const answ = this.picked-1;
-        this.isCorrect = this.answers[answ].right;
-        this.showAnswer = true;
-        this.complete = this.isCorrect;
-        if (this.complete) {
-          this.$emit('complete-lesson', this.chapter, this.id);
-        }
+      sendAnswer() {
+        axios.post(this.url, {answer: this.answer}).then(res => {
+          this.isCorrect = res.data.success ? true : false;
+          this.showAnswer = true;
+          this.complete = this.isCorrect;
+          if (this.complete) {
+            this.$emit('complete-lesson', this.chapter, this.id);
+          }
+        })
       },
-
+      
       reset() {
-        this.picked = 0;
         this.isCorrect = false;
         this.showAnswer = false;
       }
     },
-    data() {
-      return {
-        picked: 0,
-        isCorrect: false,
-        showAnswer: false,
-        complete: false,
-      }
-    }
   }
 )
